@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель | Дерд за Творчество</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #09090b; color: #f4f4f5; }
+        .user-row { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+        .user-row.banned { border-color: #7f1d1d; background: #1c0f0f; }
+        .btn { padding: 6px 14px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; border: none; cursor: pointer; }
+        .btn-red { background: #dc2626; color: #fff; }
+        .btn-red:hover { background: #b91c1c; }
+        .btn-green { background: #16a34a; color: #fff; }
+        .btn-green:hover { background: #15803d; }
+        .btn-gray { background: #27272a; color: #fff; border: 1px solid #3f3f46; text-decoration: none; display: inline-block; }
+        .btn-gray:hover { background: #3f3f46; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: #18181b; border: 1px solid #3f3f46; color: #fff; padding: 14px 20px; border-radius: 12px; font-size: 0.9rem; }
+        .toast.error { border-color: #ef4444; } .toast.success { border-color: #10b981; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="border-b border-zinc-800 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <img src="/static/dzt.jpg" class="h-9 w-9 rounded-full" onerror="this.style.display='none'">
+                <span class="text-xl font-bold">Админ-панель</span>
+            </a>
+            <a href="/" class="btn btn-gray">← На главную</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 lg:px-6 py-8 max-w-3xl">
+        <h1 class="text-2xl font-bold mb-6">Пользователи</h1>
+        <div id="users-list" class="space-y-3"></div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        async function api(path, options = {}) {
+            const res = await fetch(path, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                ...options,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Ошибка');
+            return data;
+        }
+        function showToast(msg, type='info') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+        function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+        async function loadUsers() {
+            try {
+                const users = await api('/api/admin/users');
+                const list = document.getElementById('users-list');
+                if (!users.length) {
+                    list.innerHTML = '<p class="text-zinc-500">Нет пользователей</p>';
+                    return;
+                }
+                list.innerHTML = users.map(u => `
+                    <div class="user-row ${u.is_banned ? 'banned' : ''}">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold">${esc(u.username)} ${u.is_admin ? '★' : ''}</div>
+                            <div class="text-xs text-zinc-500">${new Date(u.created_at).toLocaleDateString('ru-RU')} ${u.is_banned ? '· ЗАБАНЕН' : ''}</div>
+                        </div>
+                        ${u.is_admin ? '<span class="text-xs text-amber-400">админ</span>' :
+                            (u.is_banned
+                                ? `<button class="btn btn-green" onclick="unban(${u.id})">Разбанить</button>`
+                                : `<button class="btn btn-red" onclick="ban(${u.id})">Забанить</button>`)
+                        }
+                    </div>
+                `).join('');
+            } catch (e) {
+                showToast(e.message, 'error');
+                if (e.message.includes('администратор')) setTimeout(() => location.href = '/', 1000);
+            }
+        }
+
+        async function ban(id) {
+            if (!confirm('Забанить пользователя?')) return;
+            try {
+                await api(`/api/admin/users/${id}/ban`, { method: 'POST' });
+                showToast('Забанен', 'success');
+                loadUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function unban(id) {
+            try {
+                await api(`/api/admin/users/${id}/unban`, { method: 'POST' });
+                showToast('Разбанен', 'success');
+                loadUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        loadUsers();
+    </script>
+</body>
+</html>

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дерд за Творчество</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #f4f4f5; margin: 0; }
+        .sidebar a { color: #a1a1aa; transition: all 0.2s ease; }
+        .sidebar a:hover, .sidebar a.active { background: #18181b; color: #ffffff; }
+        .level-card { background: #18181b; border: 1px solid #27272a; border-radius: 16px; transition: transform 0.2s ease, border-color 0.2s ease; display: flex; flex-direction: column; overflow: hidden; }
+        .level-card:hover { border-color: #3f3f46; transform: translateY(-2px); }
+        .level-card-header { background: #0f0f11; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #27272a; }
+        .level-card-body { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; gap: 12px; }
+        .level-cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: #27272a; }
+        .level-title { font-size: 1.1rem; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .level-author { font-size: 0.85rem; color: #a1a1aa; }
+        .level-footer { padding: 12px 16px; background: #0f0f11; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; }
+        .btn-primary { background: #3b82f6; color: #ffffff; font-weight: 600; padding: 8px 20px; border-radius: 99px; transition: background 0.2s; font-size: 0.875rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #27272a; color: #ffffff; font-weight: 500; padding: 8px 20px; border-radius: 99px; transition: background 0.2s; font-size: 0.875rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #3f3f46; cursor: pointer; }
+        .btn-secondary:hover { background: #3f3f46; }
+        .btn-icon { color: #ef4444; background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 8px; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-icon:hover { background: rgba(239, 68, 68, 0.1); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #18181b; border: 1px solid #27272a; border-radius: 20px; padding: 32px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        .input-field { width: 100%; background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 10px 14px; color: #ffffff; font-size: 0.95rem; transition: border-color 0.2s; outline: none; box-sizing: border-box; }
+        .input-field:focus { border-color: #3b82f6; }
+        .input-label { display: block; font-size: 0.85rem; font-weight: 500; color: #a1a1aa; margin-bottom: 6px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: #18181b; border: 1px solid #3f3f46; color: #fff; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); font-size: 0.9rem; font-weight: 500; animation: slideIn 0.3s ease-out; max-width: 350px; }
+        .toast.success { border-color: #10b981; } .toast.error { border-color: #ef4444; } .toast.info { border-color: #3b82f6; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <aside class="fixed inset-y-0 left-0 z-50 w-16 hover:w-56 transition-all duration-300 flex flex-col border-r border-zinc-800 bg-[#09090b] group overflow-hidden hidden lg:flex sidebar">
+        <div class="flex items-center justify-center h-20 shrink-0 border-b border-zinc-800/50">
+            <img src="/static/dzt.jpg" alt="DZT Logo" class="h-10 w-10 rounded-full object-cover">
+        </div>
+        <nav class="flex-1 flex flex-col items-start gap-1 px-2 pt-4">
+            <a href="/" class="flex items-center w-full h-12 rounded-lg px-3 gap-4 text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all active">
+                <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span class="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Главная</span>
+            </a>
+            <a href="https://t.me/derdzt" target="_blank" class="flex items-center w-full h-12 rounded-lg px-3 gap-4 text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all">
+                <svg class="w-6 h-6 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.36 2.526.36 2.526l.513 3.508.34-1.09c.068-.223.204-.355.391-.395l2.058-.416a.47.47 0 0 1 .45.098c.126.103.189.257.182.416l-.277 2.37a.468.468 0 0 1-.162.308c-.08.075-.184.119-.292.128l-2.5.102a.504.504 0 0 0-.393.286l-1.024 2.14a.469.469 0 0 1-.438.257.474.474 0 0 1-.417-.312l-.41-1.253-1.086 1.682a.474.474 0 0 1-.4.21.467.467 0 0 1-.4-.263l-1.302-2.788a.484.484 0 0 0-.43-.29l-2.34-.07a.493.493 0 0 1-.414-.25.507.507 0 0 1-.002-.508l1.262-2.22a.474.474 0 0 1 .392-.242l2.4-.06a.484.484 0 0 0 .418-.272l1.242-2.437a.462.462 0 0 1 .415-.263h.002c.158 0 .312.073.418.202l1.29 1.65.87-1.675a.467.467 0 0 1 .418-.253z"/></svg>
+                <span class="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Telegram</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="lg:pl-16 flex flex-col min-h-screen">
+        <header class="sticky top-0 z-40 w-full border-b border-zinc-800 bg-[#09090b]/80 backdrop-blur-md">
+            <div class="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="/static/dzt.jpg" alt="DZT Logo" class="h-8 w-8 rounded-full object-cover lg:hidden">
+                    <span class="text-xl font-bold text-white hidden lg:block">Дерд за Творчество</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="user-badge" class="hidden sm:flex items-center gap-2 bg-zinc-800 px-3 py-1.5 rounded-full text-sm text-zinc-300">
+                        <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                        <span id="current-user">Гость</span>
+                    </div>
+                    <a id="admin-link" href="/admin" class="btn-secondary hidden" style="padding: 8px 16px;">Админка</a>
+                    <button id="auth-btn" onclick="handleAuthClick()" class="btn-secondary" style="padding: 8px 16px;">Войти</button>
+                    <button onclick="openAddModal()" class="btn-primary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Добавить
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 container mx-auto px-4 lg:px-6 py-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <svg class="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    Оцененные уровни
+                </h2>
+                <span id="level-count" class="text-sm text-zinc-400 bg-zinc-800 px-3 py-1 rounded-full">0</span>
+            </div>
+
+            <div id="levels-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+            <div id="no-levels-msg" class="text-center py-24">
+                <svg class="w-20 h-20 mx-auto text-zinc-700 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p class="text-xl text-zinc-500 font-medium">Пока нет оцененных уровней</p>
+                <p class="text-sm text-zinc-600 mt-2">Нажмите «Добавить», чтобы начать</p>
+            </div>
+
+            <div class="mt-8 flex justify-center gap-3">
+                <button onclick="exportData()" class="btn-secondary text-xs">Экспорт данных (JSON)</button>
+                <button onclick="document.getElementById('import-file').click()" class="btn-secondary text-xs">Импорт данных</button>
+                <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+            </div>
+        </main>
+
+        <footer class="border-t border-zinc-800 py-8 mt-auto">
+            <div class="container mx-auto px-4 lg:px-6 flex flex-col items-center gap-4">
+                <div class="flex gap-6">
+                    <a href="https://t.me/derdzt" target="_blank" class="text-zinc-500 hover:text-blue-400 transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.36 2.526.36 2.526l.513 3.508.34-1.09c.068-.223.204-.355.391-.395l2.058-.416a.47.47 0 0 1 .45.098c.126.103.189.257.182.416l-.277 2.37a.468.468 0 0 1-.162.308c-.08.075-.184.119-.292.128l-2.5.102a.504.504 0 0 0-.393.286l-1.024 2.14a.469.469 0 0 1-.438.257.474.474 0 0 1-.417-.312l-.41-1.253-1.086 1.682a.474.474 0 0 1-.4.21.467.467 0 0 1-.4-.263l-1.302-2.788a.484.484 0 0 0-.43-.29l-2.34-.07a.493.493 0 0 1-.414-.25.507.507 0 0 1-.002-.508l1.262-2.22a.474.474 0 0 1 .392-.242l2.4-.06a.484.484 0 0 0 .418-.272l1.242-2.437a.462.462 0 0 1 .415-.263h.002c.158 0 .312.073.418.202l1.29 1.65.87-1.675a.467.467 0 0 1 .418-.253z"/></svg>
+                        Telegram-канал
+                    </a>
+                </div>
+                <div class="text-sm text-zinc-500">«Дерд за Творчество» © 2026</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Модалка добавления уровня -->
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Добавить новый уровень</h3>
+                <button onclick="closeAddModal()" class="text-zinc-400 hover:text-white text-2xl">×</button>
+            </div>
+            <form id="add-level-form">
+                <div class="space-y-4">
+                    <div>
+                        <label class="input-label">Ссылка на YouTube (опционально)</label>
+                        <input type="text" id="level-yt" class="input-field" placeholder="https://www.youtube.com/watch?v=..." oninput="onYouTubeLinkChange()">
+                        <p class="text-xs text-zinc-500 mt-1">Если указать ссылку, название, автор и обложка подтянутся автоматически.</p>
+                    </div>
+                    <div>
+                        <label class="input-label">Название уровня</label>
+                        <input type="text" id="level-title" required class="input-field" placeholder="Например: Bloodbath">
+                    </div>
+                    <div>
+                        <label class="input-label">Автор</label>
+                        <input type="text" id="level-author" required class="input-field" placeholder="Например: Riot">
+                    </div>
+                    <div>
+                        <label class="input-label">Тип оценивания</label>
+                        <select id="level-rating-type" class="input-field">
+                            <option value="both">Геймплей + Декорации</option>
+                            <option value="gameplay">Только геймплей</option>
+                            <option value="decoration">Только декорации</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Ссылка на уровень (GD Level ID или другая)</label>
+                        <input type="text" id="level-link" class="input-field" placeholder="12345678">
+                    </div>
+                    <div>
+                        <label class="input-label">Обложка (URL, оставьте пустым для YouTube-превью)</label>
+                        <input type="url" id="level-cover" class="input-field" placeholder="https://...">
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-end gap-3">
+                    <button type="button" onclick="closeAddModal()" class="btn-secondary">Отмена</button>
+                    <button type="submit" class="btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка пользователя -->
+    <div id="user-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white" id="user-modal-title">Вход в аккаунт</h3>
+                <button onclick="closeUserModal()" class="text-zinc-400 hover:text-white text-2xl">×</button>
+            </div>
+
+            <div class="flex gap-2 mb-6 bg-[#09090b] p-1 rounded-xl">
+                <button id="tab-login" type="button" class="flex-1 py-2 rounded-lg font-semibold text-sm transition-colors bg-blue-600 text-white" onclick="switchAuthTab('login')">Вход</button>
+                <button id="tab-register" type="button" class="flex-1 py-2 rounded-lg font-semibold text-sm transition-colors text-zinc-400" onclick="switchAuthTab('register')">Регистрация</button>
+            </div>
+
+            <form id="user-form">
+                <div class="space-y-4">
+                    <div>
+                        <label class="input-label">Имя пользователя</label>
+                        <input type="text" id="user-name" required class="input-field" placeholder="Ваш ник" minlength="3" maxlength="30">
+                    </div>
+                    <div>
+                        <label class="input-label">Пароль</label>
+                        <input type="password" id="user-password" required class="input-field" placeholder="••••••••" minlength="4">
+                    </div>
+                </div>
+                <button type="submit" id="user-submit" class="btn-primary w-full justify-center mt-6" style="width:100%;">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        // ============================================================
+        // API
+        // ============================================================
+        async function api(path, options = {}) {
+            const res = await fetch(path, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                ...options,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Ошибка сервера');
+            return data;
+        }
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, ch => (
+                { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]
+            ));
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        let currentUser = null;
+        let authMode = 'login';
+
+        // ============================================================
+        // AUTH
+        // ============================================================
+        async function checkAuth() {
+            try {
+                const data = await api('/api/me');
+                currentUser = data.logged_in ? data : null;
+            } catch (e) {
+                currentUser = null;
+            }
+            updateUserUI();
+        }
+
+        function updateUserUI() {
+            const badge = document.getElementById('user-badge');
+            const name = document.getElementById('current-user');
+            const btn = document.getElementById('auth-btn');
+            const adminLink = document.getElementById('admin-link');
+            if (!badge || !name || !btn) return;
+            if (currentUser) {
+                badge.classList.remove('hidden');
+                name.textContent = currentUser.username + (currentUser.is_admin ? ' ★' : '');
+                btn.textContent = 'Выйти';
+                if (adminLink) adminLink.classList.toggle('hidden', !currentUser.is_admin);
+            } else {
+                badge.classList.add('hidden');
+                btn.textContent = 'Войти';
+                if (adminLink) adminLink.classList.add('hidden');
+            }
+        }
+
+        function handleAuthClick() {
+            if (currentUser) {
+                api('/api/logout', { method: 'POST' })
+                    .then(() => { showToast('Вы вышли из системы', 'info'); return checkAuth(); })
+                    .then(() => renderLevels())
+                    .catch(e => showToast(e.message, 'error'));
+            } else {
+                openUserModal();
+            }
+        }
+
+        // ============================================================
+        // МОДАЛКИ
+        // ============================================================
+        function openAddModal() {
+            if (!currentUser) {
+                showToast('Сначала войдите в аккаунт', 'error');
+                setTimeout(openUserModal, 300);
+                return;
+            }
+            if (!currentUser.is_admin) {
+                showToast('Добавлять уровни могут только администраторы', 'error');
+                return;
+            }
+            document.getElementById('add-modal').classList.add('active');
+        }
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.remove('active');
+            document.getElementById('add-level-form').reset();
+        }
+
+        function openUserModal() {
+            document.getElementById('user-modal').classList.add('active');
+            switchAuthTab('login');
+        }
+        function closeUserModal() {
+            document.getElementById('user-modal').classList.remove('active');
+            document.getElementById('user-form').reset();
+        }
+
+        function switchAuthTab(mode) {
+            authMode = mode;
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-register');
+            const submit = document.getElementById('user-submit');
+            const title = document.getElementById('user-modal-title');
+            if (!tabLogin || !tabReg || !submit) return;
+
+            const on = ['bg-blue-600', 'text-white'];
+            const off = ['text-zinc-400'];
+
+            if (mode === 'login') {
+                tabLogin.classList.add(...on); tabLogin.classList.remove(...off);
+                tabReg.classList.remove(...on); tabReg.classList.add(...off);
+                submit.textContent = 'Войти';
+                if (title) title.textContent = 'Вход в аккаунт';
+            } else {
+                tabReg.classList.add(...on); tabReg.classList.remove(...off);
+                tabLogin.classList.remove(...on); tabLogin.classList.add(...off);
+                submit.textContent = 'Зарегистрироваться';
+                if (title) title.textContent = 'Регистрация';
+            }
+        }
+
+        // ============================================================
+        // ФОРМА АВТОРИЗАЦИИ
+        // ============================================================
+        document.getElementById('user-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('user-name').value.trim();
+            const password = document.getElementById('user-password').value;
+            const url = authMode === 'login' ? '/api/login' : '/api/register';
+            try {
+                const data = await api(url, {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password }),
+                });
+                currentUser = data;
+                updateUserUI();
+                closeUserModal();
+                showToast(authMode === 'login' ? 'Вход выполнен!' : 'Аккаунт создан!', 'success');
+                renderLevels();
+            } catch (err) { showToast(err.message, 'error'); }
+        });
+
+        // ============================================================
+        // YOUTUBE
+        // ============================================================
+        function getYouTubeId(url) {
+            const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+            return (m && m[2].length === 11) ? m[2] : null;
+        }
+
+        async function onYouTubeLinkChange() {
+            const url = document.getElementById('level-yt').value.trim();
+            const id = getYouTubeId(url);
+            if (!id) return;
+            const coverInput = document.getElementById('level-cover');
+            if (!coverInput.value) coverInput.value = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+            try {
+                const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const titleInput = document.getElementById('level-title');
+                    const authorInput = document.getElementById('level-author');
+                    if (!titleInput.value) titleInput.value = data.title;
+                    if (!authorInput.value) authorInput.value = data.author_name;
+                }
+            } catch (e) { console.warn(e); }
+        }
+
+        // ============================================================
+        // ДОБАВЛЕНИЕ УРОВНЯ
+        // ============================================================
+        document.getElementById('add-level-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('level-title').value.trim(),
+                author: document.getElementById('level-author').value.trim(),
+                gd_link: document.getElementById('level-link').value.trim(),
+                cover: document.getElementById('level-cover').value.trim(),
+                yt_link: document.getElementById('level-yt').value.trim(),
+                rating_type: document.getElementById('level-rating-type').value,
+            };
+            try {
+                await api('/api/levels', { method: 'POST', body: JSON.stringify(payload) });
+                closeAddModal();
+                showToast('Уровень добавлен!', 'success');
+                renderLevels();
+            } catch (err) { showToast(err.message, 'error'); }
+        });
+
+        // ============================================================
+        // РЕНДЕР
+        // ============================================================
+        async function renderLevels() {
+            let levels = [];
+            try { levels = await api('/api/levels'); }
+            catch (e) { console.error(e); return; }
+
+            const grid = document.getElementById('levels-grid');
+            const noMsg = document.getElementById('no-levels-msg');
+            const count = document.getElementById('level-count');
+            if (count) count.textContent = levels.length;
+            if (!grid) return;
+
+            if (levels.length === 0) {
+                grid.innerHTML = '';
+                if (noMsg) noMsg.style.display = 'block';
+                return;
+            }
+            if (noMsg) noMsg.style.display = 'none';
+
+            grid.innerHTML = levels.map(level => {
+                const score = level.avg_total != null ? level.avg_total : '—';
+                const ratingColor = level.avg_total == null ? 'text-zinc-500'
+                    : level.avg_total >= 80 ? 'text-green-400'
+                    : level.avg_total >= 60 ? 'text-yellow-400' : 'text-red-400';
+                const cover = level.cover || ('https://via.placeholder.com/640x360/18181b/3b82f6?text=' + encodeURIComponent(level.title));
+                const adminDel = (currentUser && currentUser.is_admin)
+                    ? `<button onclick="deleteLevel(${level.id})" class="btn-icon">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>` : '';
+                const adminBadge = level.avg_admin != null
+                    ? `<span class="text-xs text-amber-400 font-bold">★ ${level.avg_admin}</span>`
+                    : '';
+                return `
+                <div class="level-card">
+                    <div class="level-card-header">
+                        <div class="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-zinc-700">
+                            <img src="${cover}" alt="${escapeHtml(level.title)}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/100x100/18181b/3b82f6?text=?'">
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="level-title">${escapeHtml(level.title)}</div>
+                            <div class="level-author">${escapeHtml(level.author)}</div>
+                        </div>
+                        <div class="flex flex-col items-end ml-2">
+                            <div class="text-xl font-bold ${ratingColor}">${score}</div>
+                            ${adminBadge}
+                        </div>
+                    </div>
+                    <div class="level-card-body">
+                        <img src="${cover}" alt="${escapeHtml(level.title)}" class="level-cover" onerror="this.src='https://via.placeholder.com/640x360/18181b/3b82f6?text=?'">
+                        <div class="text-xs text-zinc-500">Рецензий: ${level.reviews_count}</div>
+                        ${level.yt_link ? `<div class="flex items-center gap-2 text-xs text-red-400"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg> YouTube</div>` : ''}
+                    </div>
+                    <div class="level-footer">
+                        <a href="level.html?id=${level.id}" class="btn-primary" style="padding: 6px 16px; font-size: 0.8rem;">
+                            Открыть
+                        </a>
+                        ${adminDel}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function deleteLevel(id) {
+            if (!confirm('Удалить этот уровень?')) return;
+            try {
+                await api(`/api/levels/${id}`, { method: 'DELETE' });
+                showToast('Уровень удалён', 'success');
+                renderLevels();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        // ============================================================
+        // ЭКСПОРТ / ИМПОРТ
+        // ============================================================
+        async function exportData() {
+            try {
+                const levels = await api('/api/levels');
+                const full = await Promise.all(levels.map(l => api(`/api/levels/${l.id}`).catch(() => l)));
+                const blob = new Blob([JSON.stringify(full, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dzt-backup-${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Экспорт завершён', 'success');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!currentUser || !currentUser.is_admin) {
+                showToast('Только администраторы могут импортировать уровни', 'error');
+                event.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('Неверный формат файла');
+                    let ok = 0, fail = 0;
+                    for (const lvl of imported) {
+                        try {
+                            await api('/api/levels', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    title: lvl.title || 'Без названия',
+                                    author: lvl.author || 'Неизвестен',
+                                    cover: lvl.cover || '',
+                                    yt_link: lvl.yt_link || lvl.ytLink || '',
+                                    gd_link: lvl.gd_link || lvl.link || '',
+                                    rating_type: lvl.rating_type || 'both',
+                                }),
+                            });
+                            ok++;
+                        } catch { fail++; }
+                    }
+                    showToast(`Импортировано: ${ok}${fail ? `, пропущено: ${fail}` : ''}`, 'success');
+                    renderLevels();
+                } catch (err) { showToast('Ошибка импорта: ' + err.message, 'error'); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (async function init() {
+            await checkAuth();
+            await renderLevels();
+        })();
+    </script>
+</body>
+</html>

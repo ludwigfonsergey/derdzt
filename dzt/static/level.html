@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оценка уровня | Дерд за Творчество</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; width: 100%; position: relative; z-index: 10; margin: 0; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; height: 28px; width: 20px; border-radius: 50% / 40%;
+            background: radial-gradient(ellipse at 35% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 50%),
+                        linear-gradient(135deg, #ffffff 0%, #e2e8f0 20%, #94a3b8 50%, #64748b 80%, #334155 100%);
+            border: 1.5px solid #f8fafc;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.9), inset 0 -2px 4px rgba(0,0,0,0.5);
+            margin-top: -9px; transition: transform 0.15s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15) translateY(-1px); }
+        input[type="range"]::-moz-range-thumb {
+            height: 28px; width: 20px; border-radius: 50% / 40%;
+            background: radial-gradient(ellipse at 35% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 50%),
+                        linear-gradient(135deg, #ffffff 0%, #e2e8f0 20%, #94a3b8 50%, #64748b 80%, #334155 100%);
+            border: 1.5px solid #f8fafc; box-shadow: 0 3px 8px rgba(0,0,0,0.7);
+        }
+        input[type="range"]::-webkit-slider-runnable-track, input[type="range"]::-moz-range-track { width: 100%; height: 10px; border-radius: 9999px; background: transparent; }
+        .slider-track-bg { position: absolute; top: 50%; transform: translateY(-50%); left: 0; right: 0; height: 10px; border-radius: 9999px; background-color: #232736; overflow: hidden; pointer-events: none; z-index: 1; }
+        .slider-track-fill { height: 100%; border-radius: 9999px; transition: width 0.05s linear; }
+        .slider-track-fill.blue { background: linear-gradient(to right, #2563eb, #60a5fa); }
+        .slider-track-fill.amber { background: linear-gradient(to right, #d97706, #fbbf24); }
+        input[type="range"]:disabled { cursor: not-allowed; opacity: .7; }
+        @keyframes scorePop { 0% { transform: scale(1); } 50% { transform: scale(1.12); color: #60a5fa; } 100% { transform: scale(1); } }
+        .score-animated { animation: scorePop 0.25s ease-out; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0e0f13; }
+        ::-webkit-scrollbar-thumb { background: #272a37; border-radius: 4px; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: #18181b; border: 1px solid #3f3f46; color: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; animation: slideIn 0.3s ease-out; max-width: 350px; }
+        .toast.success { border-color: #10b981; } .toast.error { border-color: #ef4444; } .toast.info { border-color: #3b82f6; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .review-card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .admin-card { background: linear-gradient(135deg, #1e1b4b 0%, #18181b 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .score-pill { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; padding: 2px 10px; border-radius: 99px; font-size: 0.8rem; }
+        .score-pill.blue { background: rgba(59,130,246,0.2); color: #93c5fd; }
+        .score-pill.amber { background: rgba(245,158,11,0.2); color: #fcd34d; }
+        .score-pill.gold { background: rgba(245,158,11,0.35); color: #fbbf24; }
+    </style>
+</head>
+<body class="bg-[#0e0f13] text-zinc-100 font-sans min-h-screen flex flex-col antialiased">
+
+    <header class="sticky top-0 z-40 w-full border-b border-zinc-800 bg-[#0e0f13]/80 backdrop-blur-md">
+        <div class="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <img src="/static/dzt.jpg" alt="DZT Logo" class="h-10 w-10 rounded-full object-cover">
+                <span class="text-xl font-bold text-white hidden lg:block">Дерд за Творчество</span>
+            </a>
+            <div class="flex items-center gap-3">
+                <div id="user-badge" class="hidden sm:flex items-center gap-2 bg-zinc-800 px-3 py-1.5 rounded-full text-sm text-zinc-300">
+                    <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                    <span id="current-user">Гость</span>
+                </div>
+                <a href="/" class="inline-flex items-center gap-2 bg-[#27272a] hover:bg-[#3f3f46] border border-[#3f3f46] text-white font-semibold text-sm px-6 py-2.5 rounded-full transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Назад
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 container mx-auto px-4 lg:px-6 py-8 max-w-5xl">
+
+        <div id="level-info-header" class="bg-[#14161d] border border-[#27272a] rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center mb-8"></div>
+
+        <div id="rating-container" class="max-w-3xl mx-auto space-y-6">
+
+            <div id="gameplay-block" class="bg-[#12141c] border border-[#2e3e6e] rounded-2xl p-5 shadow-lg shadow-blue-950/10">
+                <h3 class="text-lg font-bold mb-6 text-blue-400">ГЕЙМПЛЕЙ</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Связь с музыкой и сила импакта</span><span id="val-music" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-music" class="slider-track-fill blue" style="width: 0%;"></div></div><input type="range" id="slider-music" min="1" max="25" value="1" step="1" oninput="updateSlider('music')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Композиция, пространство и структуры</span><span id="val-composition" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-composition" class="slider-track-fill blue" style="width: 0%;"></div></div><input type="range" id="slider-composition" min="1" max="24" value="1" step="1" oninput="updateSlider('composition')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Разнообразие, развитие и читаемость</span><span id="val-variety" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-variety" class="slider-track-fill blue" style="width: 0%;"></div></div><input type="range" id="slider-variety" min="1" max="18" value="1" step="1" oninput="updateSlider('variety')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Атмосфера и эмоциональный импакт</span><span id="val-atmosphere" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-atmosphere" class="slider-track-fill blue" style="width: 0%;"></div></div><input type="range" id="slider-atmosphere" min="1" max="13" value="1" step="1" oninput="updateSlider('atmosphere')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Оригинальность и уникальность</span><span id="val-originality" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-originality" class="slider-track-fill blue" style="width: 0%;"></div></div><input type="range" id="slider-originality" min="1" max="15" value="1" step="1" oninput="updateSlider('originality')"></div></div>
+                </div>
+            </div>
+
+            <div id="decoration-block" class="bg-[#14111d] border border-[#4c2263] rounded-2xl p-5 shadow-lg shadow-purple-950/10">
+                <h3 class="text-lg font-bold mb-6 text-amber-400">ДЕКОРАЦИИ</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Композиция</span><span id="val-deco-composition" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-deco-composition" class="slider-track-fill amber" style="width: 0%;"></div></div><input type="range" id="slider-deco-composition" min="1" max="18" value="1" step="1" oninput="updateSlider('deco-composition')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Цвет</span><span id="val-deco-color" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-deco-color" class="slider-track-fill amber" style="width: 0%;"></div></div><input type="range" id="slider-deco-color" min="1" max="15" value="1" step="1" oninput="updateSlider('deco-color')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Тематика</span><span id="val-deco-theme" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-deco-theme" class="slider-track-fill amber" style="width: 0%;"></div></div><input type="range" id="slider-deco-theme" min="1" max="16" value="1" step="1" oninput="updateSlider('deco-theme')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Качество</span><span id="val-deco-quality" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-deco-quality" class="slider-track-fill amber" style="width: 0%;"></div></div><input type="range" id="slider-deco-quality" min="1" max="14" value="1" step="1" oninput="updateSlider('deco-quality')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Атмосфера</span><span id="val-deco-atmosphere" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-deco-atmosphere" class="slider-track-fill amber" style="width: 0%;"></div></div><input type="range" id="slider-deco-atmosphere" min="1" max="16" value="1" step="1" oninput="updateSlider('deco-atmosphere')"></div></div>
+                    <div class="space-y-2"><div class="flex justify-between items-center text-sm"><span class="font-bold text-white">Оригинальность</span><span id="val-deco-originality" class="font-extrabold text-white">1</span></div><div class="relative flex items-center"><div class="slider-track-bg"><div id="fill-deco-originality" class="slider-track-fill amber" style="width: 0%;"></div></div><input type="range" id="slider-deco-originality" min="1" max="16" value="1" step="1" oninput="updateSlider('deco-originality')"></div></div>
+                </div>
+            </div>
+
+            <div class="bg-[#14161d] border border-[#272a37] rounded-2xl p-6 text-center">
+                <div class="text-sm text-zinc-400 mb-2">Ваша итоговая оценка</div>
+                <div class="flex items-baseline justify-center gap-2 select-none">
+                    <span id="total-score" class="text-5xl font-black text-white tracking-tight leading-none">0</span>
+                    <span id="total-denom" class="text-zinc-500 font-extrabold text-xl">/ 190</span>
+                </div>
+                <div id="admin-official-score" class="hidden mt-3 text-sm text-amber-400 font-semibold"></div>
+            </div>
+
+            <!-- Админские (официальные) оценки -->
+            <div id="admin-ratings-block" class="hidden bg-gradient-to-br from-[#1e1b4b] to-[#14161d] border border-[#f59e0b] rounded-2xl p-6">
+                <h3 class="text-lg font-bold mb-4 text-amber-400 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    Официальные оценки администрации
+                </h3>
+                <div id="admin-ratings-list" class="space-y-3"></div>
+            </div>
+
+            <!-- Рецензии -->
+            <div class="bg-[#14161d] border border-[#272a37] rounded-2xl p-6">
+                <h3 class="text-lg font-bold mb-4 text-white">Рецензии пользователей</h3>
+                <div id="reviews-list" class="space-y-3 mb-6"></div>
+
+                <div id="review-form-container">
+                    <div class="text-sm font-semibold text-zinc-300 mb-2">Ваша рецензия (ползунки привязаны к вашей рецензии)</div>
+                    <div id="review-sliders-hint" class="text-xs text-zinc-500 mb-3">Ползунки выше — это ваша личная оценка, она сохранится вместе с рецензией.</div>
+                    <textarea id="review-text" rows="4" placeholder="Напишите свою рецензию на уровень..." class="w-full bg-[#0e0f13] border border-[#272a37] rounded-xl p-4 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors text-sm resize-y min-h-[100px]"></textarea>
+                    <div class="flex justify-between items-center mt-3">
+                        <span class="text-xs text-zinc-500" id="review-char-count">0 / 2000</span>
+                        <button onclick="submitReview()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-full transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            <span id="review-submit-label">Отправить рецензию</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-4 mt-8 mb-16">
+            <button id="save-btn" class="hidden"></button>
+            <button id="admin-save-btn" class="hidden inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm px-8 py-3 rounded-full transition-all shadow-lg shadow-amber-500/20 active:scale-95">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Сохранить официальную оценку (админ)
+            </button>
+            <button id="screenshot-btn" class="inline-flex items-center gap-2 bg-[#27272a] hover:bg-[#3f3f46] border border-[#3f3f46] text-white font-semibold text-sm px-8 py-3 rounded-full transition-all active:scale-95">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Скопировать скриншот
+            </button>
+        </div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        const API = '';
+        let currentLevelId = null;
+        let currentLevel = null;
+        let currentUser = null;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = '';
+            if (type === 'success') icon = '<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            else if (type === 'error') icon = '<svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            else icon = '<svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100%)'; setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+
+        async function api(path, options = {}) {
+            const res = await fetch(API + path, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                ...options,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Ошибка');
+            return data;
+        }
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
+        }
+
+        function updateSlider(target) {
+            const slider = document.getElementById(`slider-${target}`);
+            const valDisplay = document.getElementById(`val-${target}`);
+            const fill = document.getElementById(`fill-${target}`);
+            const min = +slider.min, max = +slider.max, val = +slider.value;
+            valDisplay.innerText = val;
+            fill.style.width = `${((val - min) / (max - min)) * 100}%`;
+            updateTotalScore();
+        }
+
+        function getSliderValues() {
+            const v = {};
+            document.querySelectorAll('input[type="range"]').forEach(s => {
+                v[s.id.replace('slider-', '')] = +s.value;
+            });
+            return v;
+        }
+
+        function setSliderValues(data) {
+            if (!data) return;
+            Object.entries(data).forEach(([k, val]) => {
+                const s = document.getElementById(`slider-${k}`);
+                if (s && val !== undefined) { s.value = val; updateSlider(k); }
+            });
+            updateTotalScore();
+        }
+
+        const GP_MAX = { music: 25, composition: 24, variety: 18, atmosphere: 13, originality: 15 };
+        const DC_MAX = { 'deco-composition': 18, 'deco-color': 15, 'deco-theme': 16, 'deco-quality': 14, 'deco-atmosphere': 16, 'deco-originality': 16 };
+
+        function getActiveRatingType() { return currentLevel ? currentLevel.rating_type : 'both'; }
+
+        function updateTotalScore() {
+            const v = getSliderValues();
+            const rt = getActiveRatingType();
+            let gp = 0, dc = 0;
+            if (rt !== 'decoration') gp = Object.keys(GP_MAX).reduce((s, k) => s + (v[k] || 0), 0);
+            if (rt !== 'gameplay')   dc = Object.keys(DC_MAX).reduce((s, k) => s + (v[k] || 0), 0);
+            document.getElementById('total-score').textContent = gp + dc;
+            const denom = (rt === 'both') ? 190 : 95;
+            document.getElementById('total-denom').textContent = '/ ' + denom;
+        }
+
+        function buildHeader(level) {
+            const cover = level.cover || 'https://via.placeholder.com/300/18181b/3b82f6?text=?';
+            const official = level.admin_stats && level.admin_stats.admin_gameplay_count + level.admin_stats.admin_decoration_count > 0
+                ? `<span class="inline-flex items-center gap-1.5 bg-amber-500/20 rounded-full px-3 py-1 text-sm text-amber-400 font-bold">
+                    ★ Официальная: ${Math.round((level.admin_stats.admin_gameplay_total_avg + level.admin_stats.admin_decoration_total_avg) / 2)} / 95
+                   </span>` : '';
+            document.getElementById('level-info-header').innerHTML = `
+                <img src="${cover}" alt="${escapeHtml(level.title)}" class="w-[160px] h-[160px] object-cover rounded-xl border border-[#27272a] bg-[#09090b] shrink-0" onerror="this.src='https://via.placeholder.com/300/18181b/3b82f6?text=?'">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-3xl lg:text-4xl font-extrabold text-white mb-2">${escapeHtml(level.title)}</h1>
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <span class="inline-flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-sm text-zinc-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            ${escapeHtml(level.author)}
+                        </span>
+                        ${level.yt_link ? `<a href="${level.yt_link}" target="_blank" class="inline-flex items-center gap-1.5 bg-red-500/20 rounded-full px-3 py-1 text-sm text-red-400 hover:text-red-300 transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                            YouTube
+                        </a>` : ''}
+                        ${official}
+                    </div>
+                    <div class="text-xs text-zinc-500">Геймплей (${level.user_stats.gameplay_count}) · Декор (${level.user_stats.decoration_count}) · Рецензий (${level.reviews.length})</div>
+                </div>
+            `;
+        }
+
+        function applyRatingType(rt) {
+            if (rt === 'gameplay') document.getElementById('decoration-block').style.display = 'none';
+            else if (rt === 'decoration') document.getElementById('gameplay-block').style.display = 'none';
+        }
+
+        function renderAdminRatings(level) {
+            const block = document.getElementById('admin-ratings-block');
+            const list = document.getElementById('admin-ratings-list');
+            const admin_reviews = level.admin_reviews || [];
+            if (admin_reviews.length === 0) {
+                block.classList.add('hidden');
+                return;
+            }
+            block.classList.remove('hidden');
+            list.innerHTML = admin_reviews.map(ar => {
+                const total = ar.gameplay_total + ar.decoration_total;
+                const denom = (ar.gameplay_data && ar.decoration_data) ? 190 : 95;
+                return `
+                <div class="admin-card">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-amber-400 font-bold text-sm">★ ${escapeHtml(ar.user)}</span>
+                        <span class="text-xs text-zinc-500 ml-auto">${new Date(ar.created_at).toLocaleDateString('ru-RU')}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        ${ar.gameplay_data ? `<span class="score-pill blue">Геймплей: ${ar.gameplay_total} / 95</span>` : ''}
+                        ${ar.decoration_data ? `<span class="score-pill amber">Декор: ${ar.decoration_total} / 95</span>` : ''}
+                        <span class="score-pill gold">Итог: ${total} / ${denom}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderReviews(level) {
+            const list = document.getElementById('reviews-list');
+            const reviews = level.reviews || [];
+            if (reviews.length === 0) {
+                list.innerHTML = '<p class="text-sm text-zinc-500 italic">Пока нет рецензий. Будьте первым!</p>';
+                return;
+            }
+            const isAdmin = currentUser && currentUser.is_admin;
+            list.innerHTML = reviews.map(r => {
+                const total = r.gameplay_total + r.decoration_total;
+                const denom = (r.gameplay_data && r.decoration_data) ? 190 : 95;
+                const canDelete = isAdmin || (currentUser && currentUser.username === r.user);
+                return `
+                <div class="review-card">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                        <span class="font-semibold text-sm text-white">${escapeHtml(r.user)}</span>
+                        <span class="text-xs text-zinc-500 ml-auto">${new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
+                        ${canDelete ? `<button onclick="deleteReview(${r.id})" class="ml-2 text-red-400 hover:text-red-300 text-xs">Удалить</button>` : ''}
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs mb-2">
+                        ${r.gameplay_data ? `<span class="score-pill blue">ГП: ${r.gameplay_total}/95</span>` : ''}
+                        ${r.decoration_data ? `<span class="score-pill amber">ДК: ${r.decoration_total}/95</span>` : ''}
+                        <span class="score-pill" style="background:rgba(63,63,70,0.5);color:#d4d4d8">Итог: ${total}/${denom}</span>
+                    </div>
+                    <p class="text-sm text-zinc-300 whitespace-pre-wrap">${escapeHtml(r.text)}</p>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadLevel() {
+            const params = new URLSearchParams(window.location.search);
+            currentLevelId = params.get('id');
+            if (!currentLevelId) { window.location.href = '/'; return; }
+            try {
+                currentLevel = await api(`/api/levels/${currentLevelId}`);
+            } catch (e) {
+                showToast(e.message, 'error');
+                setTimeout(() => window.location.href = '/', 800);
+                return;
+            }
+
+            buildHeader(currentLevel);
+            applyRatingType(currentLevel.rating_type);
+            renderAdminRatings(currentLevel);
+            renderReviews(currentLevel);
+
+            // Если я админ — показываю кнопку админской оценки
+            if (currentUser && currentUser.is_admin) {
+                document.getElementById('admin-save-btn').classList.remove('hidden');
+                if (currentLevel.my_admin_rating) {
+                    const ar = currentLevel.my_admin_rating;
+                    if (ar.gameplay_data) setSliderValues({
+                        music: ar.gameplay_data.music, composition: ar.gameplay_data.composition,
+                        variety: ar.gameplay_data.variety, atmosphere: ar.gameplay_data.atmosphere,
+                        originality: ar.gameplay_data.originality,
+                    });
+                    if (ar.decoration_data) setSliderValues({
+                        'deco-composition': ar.decoration_data.composition,
+                        'deco-color': ar.decoration_data.color,
+                        'deco-theme': ar.decoration_data.theme,
+                        'deco-quality': ar.decoration_data.quality,
+                        'deco-atmosphere': ar.decoration_data.atmosphere,
+                        'deco-originality': ar.decoration_data.originality,
+                    });
+                }
+            }
+
+            // Если у меня есть рецензия — подставляю текст и оценки
+            if (currentLevel.my_review) {
+                document.getElementById('review-text').value = currentLevel.my_review.text || '';
+                document.getElementById('review-char-count').textContent = (currentLevel.my_review.text || '').length + ' / 2000';
+                document.getElementById('review-submit-label').textContent = 'Обновить рецензию';
+                if (!(currentUser && currentUser.is_admin)) {
+                    if (currentLevel.my_review.gameplay_data) setSliderValues({
+                        music: currentLevel.my_review.gameplay_data.music,
+                        composition: currentLevel.my_review.gameplay_data.composition,
+                        variety: currentLevel.my_review.gameplay_data.variety,
+                        atmosphere: currentLevel.my_review.gameplay_data.atmosphere,
+                        originality: currentLevel.my_review.gameplay_data.originality,
+                    });
+                    if (currentLevel.my_review.decoration_data) setSliderValues({
+                        'deco-composition': currentLevel.my_review.decoration_data.composition,
+                        'deco-color': currentLevel.my_review.decoration_data.color,
+                        'deco-theme': currentLevel.my_review.decoration_data.theme,
+                        'deco-quality': currentLevel.my_review.decoration_data.quality,
+                        'deco-atmosphere': currentLevel.my_review.decoration_data.atmosphere,
+                        'deco-originality': currentLevel.my_review.decoration_data.originality,
+                    });
+                }
+            }
+
+            // Показываю официальную оценку
+            if (currentLevel.admin_stats && (currentLevel.admin_stats.admin_gameplay_count + currentLevel.admin_stats.admin_decoration_count > 0)) {
+                const el = document.getElementById('admin-official-score');
+                el.classList.remove('hidden');
+                const gp = currentLevel.admin_stats.admin_gameplay_total_avg;
+                const dc = currentLevel.admin_stats.admin_decoration_total_avg;
+                const denom = (currentLevel.admin_stats.admin_gameplay_count > 0 && currentLevel.admin_stats.admin_decoration_count > 0) ? 190 : 95;
+                const official = currentLevel.admin_stats.admin_gameplay_count > 0 && currentLevel.admin_stats.admin_decoration_count > 0
+                    ? Math.round((gp + dc) / 2) : (gp + dc);
+                el.innerHTML = `★ Официальная оценка администрации: <span class="font-black text-amber-300">${official}</span> / ${denom}`;
+            }
+
+            updateTotalScore();
+        }
+
+        // Сохранить официальную оценку (админ)
+        document.getElementById('admin-save-btn').addEventListener('click', async () => {
+            if (!currentUser || !currentUser.is_admin) return;
+            const v = getSliderValues();
+            const rt = currentLevel.rating_type;
+            let gameplay_data = null, decoration_data = null;
+            if (rt !== 'decoration') { gameplay_data = {}; Object.keys(GP_MAX).forEach(k => gameplay_data[k] = v[k] || 0); }
+            if (rt !== 'gameplay')   { decoration_data = {}; Object.keys(DC_MAX).forEach(k => decoration_data[k] = v[k] || 0); }
+            try {
+                await api(`/api/levels/${currentLevelId}/admin_rate`, {
+                    method: 'POST',
+                    body: JSON.stringify({ gameplay_data, decoration_data }),
+                });
+                showToast('Официальная оценка сохранена!', 'success');
+                await loadLevel();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        async function submitReview() {
+            if (!currentUser) { showToast('Войдите, чтобы писать рецензии', 'error'); return; }
+            const text = document.getElementById('review-text').value.trim();
+            if (text.length < 10) { showToast('Минимум 10 символов', 'error'); return; }
+            if (text.length > 2000) { showToast('Максимум 2000 символов', 'error'); return; }
+            const v = getSliderValues();
+            const rt = currentLevel.rating_type;
+            let gameplay_data = null, decoration_data = null;
+            if (rt !== 'decoration') { gameplay_data = {}; Object.keys(GP_MAX).forEach(k => gameplay_data[k] = v[k] || 0); }
+            if (rt !== 'gameplay')   { decoration_data = {}; Object.keys(DC_MAX).forEach(k => decoration_data[k] = v[k] || 0); }
+            try {
+                await api(`/api/levels/${currentLevelId}/reviews`, {
+                    method: 'POST',
+                    body: JSON.stringify({ text, gameplay_data, decoration_data }),
+                });
+                showToast('Рецензия сохранена!', 'success');
+                await loadLevel();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteReview(reviewId) {
+            if (!confirm('Удалить эту рецензию?')) return;
+            try {
+                await api(`/api/levels/${currentLevelId}/reviews/${reviewId}`, { method: 'DELETE' });
+                showToast('Рецензия удалена', 'success');
+                await loadLevel();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        // ============================================================
+        // СКРИНШОТ с обложкой
+        // ============================================================
+        document.getElementById('screenshot-btn').addEventListener('click', async () => {
+            if (!currentLevel) return;
+            const v = getSliderValues();
+            const rt = currentLevel.rating_type;
+            const drawGameplay = rt !== 'decoration';
+            const drawDecoration = rt !== 'gameplay';
+
+            let gp = 0, dc = 0;
+            if (drawGameplay) gp = Object.keys(GP_MAX).reduce((s, k) => s + (v[k] || 0), 0);
+            if (drawDecoration) dc = Object.keys(DC_MAX).reduce((s, k) => s + (v[k] || 0), 0);
+            const totalScore = gp + dc;
+            const denom = (drawGameplay && drawDecoration) ? 190 : 95;
+
+            showToast('Готовлю скриншот...', 'info');
+
+            // Пробуем загрузить обложку (с CORS)
+            let coverImg = null;
+            if (currentLevel.cover) {
+                coverImg = await new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => resolve(img);
+                    img.onerror = () => resolve(null);
+                    img.src = currentLevel.cover;
+                    setTimeout(() => resolve(null), 4000);
+                });
+            }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const W = 800;
+            const headerH = 200; // увеличено под обложку
+            let contentH = 0;
+            if (drawGameplay) contentH += 45 + 5 * 46;
+            if (drawDecoration) contentH += 45 + 6 * 46;
+            const totalBlockH = 110;
+            const H = 20 + headerH + 30 + contentH + 30 + totalBlockH + 60;
+
+            canvas.width = W * 2; canvas.height = H * 2;
+            ctx.scale(2, 2);
+
+            ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, W, H);
+
+            // Заголовок с обложкой
+            ctx.fillStyle = '#18181b'; ctx.strokeStyle = '#27272a'; ctx.lineWidth = 1;
+            roundRect(ctx, 20, 20, W - 40, headerH, 16); ctx.fill(); ctx.stroke();
+
+            const coverSize = 140;
+            const coverX = 40;
+            const coverY = 20 + (headerH - coverSize) / 2;
+            if (coverImg) {
+                // скруглённая обложка
+                ctx.save();
+                roundRect(ctx, coverX, coverY, coverSize, coverSize, 12);
+                ctx.clip();
+                // cover-fit
+                const ir = coverImg.width / coverImg.height;
+                let dw = coverSize, dh = coverSize, dx = coverX, dy = coverY;
+                if (ir > 1) { dw = coverSize * ir; dx = coverX - (dw - coverSize) / 2; }
+                else { dh = coverSize / ir; dy = coverY - (dh - coverSize) / 2; }
+                ctx.drawImage(coverImg, dx, dy, dw, dh);
+                ctx.restore();
+                // рамка
+                ctx.strokeStyle = '#3f3f46'; ctx.lineWidth = 2;
+                roundRect(ctx, coverX, coverY, coverSize, coverSize, 12);
+                ctx.stroke();
+            } else {
+                // заглушка
+                ctx.fillStyle = '#27272a';
+                roundRect(ctx, coverX, coverY, coverSize, coverSize, 12);
+                ctx.fill();
+                ctx.fillStyle = '#52525b'; ctx.font = 'bold 60px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('?', coverX + coverSize / 2, coverY + coverSize / 2 + 20);
+                ctx.textAlign = 'left';
+            }
+
+            const textX = coverX + coverSize + 24;
+
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 26px Inter, sans-serif'; ctx.textAlign = 'left';
+            let title = currentLevel.title;
+            if (title.length > 26) title = title.slice(0, 25) + '…';
+            ctx.fillText(title, textX, 70);
+
+            ctx.fillStyle = '#a1a1aa'; ctx.font = '15px Inter, sans-serif';
+            ctx.fillText('Автор: ' + currentLevel.author, textX, 100);
+
+            // Итоговая
+            ctx.fillStyle = '#3b82f6'; ctx.font = 'bold 54px Inter, sans-serif'; ctx.textAlign = 'right';
+            ctx.fillText(totalScore, W - 40, 80);
+            ctx.fillStyle = '#71717a'; ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.fillText('/ ' + denom, W - 40, 112);
+            ctx.textAlign = 'left';
+
+            let y = 20 + headerH + 30;
+
+            if (drawGameplay) {
+                ctx.fillStyle = '#60a5fa'; ctx.font = 'bold 22px Inter, sans-serif';
+                ctx.fillText('ГЕЙМПЛЕЙ', 40, y + 5); y += 45;
+                const gpItems = [
+                    ['Связь с музыкой', v.music || 0, GP_MAX.music],
+                    ['Композиция', v.composition || 0, GP_MAX.composition],
+                    ['Разнообразие', v.variety || 0, GP_MAX.variety],
+                    ['Атмосфера', v.atmosphere || 0, GP_MAX.atmosphere],
+                    ['Оригинальность', v.originality || 0, GP_MAX.originality],
+                ];
+                gpItems.forEach(([label, val, max]) => {
+                    ctx.fillStyle = '#d4d4d8'; ctx.font = '14px Inter, sans-serif';
+                    ctx.fillText(label, 40, y);
+                    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Inter, sans-serif'; ctx.textAlign = 'right';
+                    ctx.fillText(val + ' / ' + max, W - 40, y); ctx.textAlign = 'left';
+                    y += 18;
+                    ctx.fillStyle = '#232736'; roundRect(ctx, 40, y, W - 80, 10, 5); ctx.fill();
+                    const fillW = (W - 80) * (val / max);
+                    if (fillW > 0) {
+                        const grad = ctx.createLinearGradient(40, 0, 40 + fillW, 0);
+                        grad.addColorStop(0, '#2563eb'); grad.addColorStop(1, '#60a5fa');
+                        ctx.fillStyle = grad; roundRect(ctx, 40, y, Math.max(fillW, 5), 10, 5); ctx.fill();
+                    }
+                    y += 28;
+                });
+                y += 15;
+            }
+
+            if (drawDecoration) {
+                ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 22px Inter, sans-serif';
+                ctx.fillText('ДЕКОРАЦИИ', 40, y + 5); y += 45;
+                const dcItems = [
+                    ['Композиция', v['deco-composition'] || 0, DC_MAX['deco-composition']],
+                    ['Цвет', v['deco-color'] || 0, DC_MAX['deco-color']],
+                    ['Тематика', v['deco-theme'] || 0, DC_MAX['deco-theme']],
+                    ['Качество', v['deco-quality'] || 0, DC_MAX['deco-quality']],
+                    ['Атмосфера', v['deco-atmosphere'] || 0, DC_MAX['deco-atmosphere']],
+                    ['Оригинальность', v['deco-originality'] || 0, DC_MAX['deco-originality']],
+                ];
+                dcItems.forEach(([label, val, max]) => {
+                    ctx.fillStyle = '#d4d4d8'; ctx.font = '14px Inter, sans-serif';
+                    ctx.fillText(label, 40, y);
+                    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Inter, sans-serif'; ctx.textAlign = 'right';
+                    ctx.fillText(val + ' / ' + max, W - 40, y); ctx.textAlign = 'left';
+                    y += 18;
+                    ctx.fillStyle = '#2b2138'; roundRect(ctx, 40, y, W - 80, 10, 5); ctx.fill();
+                    const fillW = (W - 80) * (val / max);
+                    if (fillW > 0) {
+                        const grad = ctx.createLinearGradient(40, 0, 40 + fillW, 0);
+                        grad.addColorStop(0, '#d97706'); grad.addColorStop(1, '#fbbf24');
+                        ctx.fillStyle = grad; roundRect(ctx, 40, y, Math.max(fillW, 5), 10, 5); ctx.fill();
+                    }
+                    y += 28;
+                });
+                y += 15;
+            }
+
+            y += 15;
+            ctx.fillStyle = '#18181b'; ctx.strokeStyle = '#27272a';
+            roundRect(ctx, 40, y, W - 80, totalBlockH, 16); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#a1a1aa'; ctx.font = '16px Inter, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('ИТОГОВАЯ ОЦЕНКА', W / 2, y + 30);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 48px Inter, sans-serif';
+            ctx.fillText(String(totalScore), W / 2 - 30, y + 85);
+            ctx.fillStyle = '#71717a'; ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.fillText('/ ' + denom, W / 2 + 50, y + 85);
+
+            ctx.fillStyle = '#3f3f46'; ctx.font = '12px Inter, sans-serif';
+            ctx.fillText('Дерд за Творчество • t.me/derdzt', W / 2, H - 20);
+
+            const filename = `dzt-rating-${currentLevel.title.replace(/[^a-zа-я0-9]/gi, '_')}-${totalScore}.png`;
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) { showToast('Не удалось создать изображение', 'error'); return; }
+                try {
+                    if (navigator.clipboard && window.ClipboardItem) {
+                        await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+                        showToast('Скриншот скопирован в буфер обмена!', 'success');
+                    } else {
+                        throw new Error('Clipboard API недоступен');
+                    }
+                } catch (err) {
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = URL.createObjectURL(blob);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+                    showToast('Скриншот скачан (буфер недоступен)', 'info');
+                }
+            }, 'image/png');
+        });
+
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath(); ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+        }
+
+        document.getElementById('review-text').addEventListener('input', function() {
+            document.getElementById('review-char-count').textContent = this.value.length + ' / 2000';
+        });
+
+        (async function init() {
+            try {
+                const me = await api('/api/me');
+                if (me.logged_in) {
+                    currentUser = me;
+                    const badge = document.getElementById('user-badge');
+                    const name = document.getElementById('current-user');
+                    if (badge) badge.classList.remove('hidden');
+                    if (name) name.textContent = me.username + (me.is_admin ? ' ★' : '');
+                }
+            } catch (e) {}
+            await loadLevel();
+        })();
+    </script>
+</body>
+</html>
